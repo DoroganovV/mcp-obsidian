@@ -1,0 +1,53 @@
+services:
+
+# ------------------------------ obsidian webdav ---------------------------------------
+  obsidian:
+    container_name: obsidian
+    image: bytemark/webdav
+    restart: always
+    mem_limit: 128m
+    ports:
+      - "8010:80"
+    environment:
+      AUTH_TYPE: Digest
+      USERNAME: ***
+      PASSWORD: ***
+      #ANONYMOUS_METHODS: ALL
+    volumes:
+      - .\obsidian:/var/lib/dav/data/Obsidian
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.obsidian.rule=Host(`obsidian.{your_domen}`)
+      - traefik.http.routers.obsidian.tls=true
+      - traefik.http.routers.obsidian.entrypoints=websecure
+      - traefik.http.middlewares.obsidian.headers.STSSeconds=315360000
+      - traefik.http.middlewares.obsidian.headers.browserXSSFilter=true
+      - traefik.http.middlewares.obsidian.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.obsidian.headers.forceSTSHeader=true
+      - traefik.http.middlewares.obsidian.headers.SSLHost={your_domen}
+      - traefik.http.middlewares.obsidian.headers.STSIncludeSubdomains=true
+      - traefik.http.middlewares.obsidian.headers.STSPreload=true
+      - traefik.http.routers.obsidian.middlewares=obsidian@docker
+
+# ------------------------------ mcp-obsidian -------------------------------------
+  mcp_obsidian:
+    container_name: mcp-obsidian
+    image: node:latest
+    restart: always
+    mem_limit: 256m
+    cpus: '1'
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - .\mcp-obsidian:/home/node/app
+      - .\obsidian:/home/node/app/obsidian
+    ports:
+      - "8014:3000"
+    command: bash -c "npm install && node mcp-server.ts"
+
+networks:
+  default:
+    external: true
+    name: shared_network
